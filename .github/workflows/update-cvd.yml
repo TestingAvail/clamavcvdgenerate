@@ -1,0 +1,84 @@
+name: Update ClamAV CVDs
+
+on:
+  schedule:
+    - cron: "8 3 * * *"
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/update-cvd.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Update databases
+        run: |
+          pip install --no-cache-dir cvdupdate
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clamav-base
+
+          mkdir -p cvd-out
+          cvd config set --dbdir "$(pwd)/cvd-out"
+          cvd update -v
+
+      - name: Validate & Generate Release Notes
+        run: |
+          python3 - << 'EOF'
+          import glob, os, hashlib, subprocess, datetime
+
+          files = glob.glob('cvd-out/*.cvd') + glob.glob('cvd-out/*.cld')
+          if not files:
+              print("::error::No CVD/CLD files downloaded!")
+              exit(1)
+
+          notes = [
+              "ClamAV virus database mirror — automated build.",
+              "",
+              f"Updated: `{datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}`",
+              f"Run: [`{os.getenv('GITHUB_RUN_ID')}`]({os.getenv('GITHUB_SERVER_URL')}/{os.getenv('GITHUB_REPOSITORY')}/actions/runs/{os.getenv('GITHUB_RUN_ID')})",
+              "",
+              "### Files",
+              ""
+          ]
+
+          for f in files:
+              print(f"=== Validating {f} ===")
+              subprocess.run(["sigtool", "--info", f], check=True)
+
+              size = os.path.getsize(f)
+              sha256 = hashlib.sha256(open(f, "rb").read()).hexdigest()
+              notes.append(f"- **{os.path.basename(f)}** ({size} bytes) `sha256:{sha256}`")
+
+          with open("release-notes.md", "w") as out:
+              out.write("\n".join(notes) + "\n")
+          EOF
+
+      - name: Publish / refresh release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --yes 2>/dev/null || true
+
+          assets=(cvd-out/*.cvd cvd-out/*.cld)
+
+          gh release create latest \
+            --title "ClamAV CVDs - $(date -u +%Y-%m-%d)" \
+            --notes-file release-notes.md \
+            "${assets[@]}"
+
+          echo "Release URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/latest"
