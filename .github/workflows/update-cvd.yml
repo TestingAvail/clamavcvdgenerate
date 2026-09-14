@@ -73,12 +73,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete latest --yes 2>/dev/null || true
-
-          assets=(cvd-out/*.cvd cvd-out/*.cld)
-
+          
+          # Собираем только то, что реально лежит в папке
+          assets=(cvd-out/*)
+          
           gh release create latest \
             --title "ClamAV CVDs - $(date -u +%Y-%m-%d)" \
             --notes-file release-notes.md \
             "${assets[@]}"
-
+          
           echo "Release URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/latest"
