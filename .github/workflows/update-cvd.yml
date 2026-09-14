@@ -83,3 +83,15 @@ jobs:
             "${assets[@]}"
           
           echo "Release URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/latest"
+          
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'cvd-out'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
