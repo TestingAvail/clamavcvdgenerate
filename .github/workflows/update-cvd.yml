@@ -30,7 +30,7 @@ jobs:
         run: |
           pip install --no-cache-dir cvdupdate
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends clamav-base
+          sudo apt-get install -y --no-install-recommends clamav
           
           mkdir -p cvd-out
           cvd config set --dbdir "$(pwd)/cvd-out"
