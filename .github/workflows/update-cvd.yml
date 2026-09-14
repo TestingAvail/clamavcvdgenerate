@@ -9,11 +9,6 @@ on:
     paths:
       - '.github/workflows/update-cvd.yml'
 
-permissions:
-  contents: write
-  id-token: write
-  pages: write
-
 jobs:
   mirror:
     runs-on: ubuntu-24.04
