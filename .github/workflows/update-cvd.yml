@@ -60,8 +60,13 @@ jobs:
           ]
 
           for f in files:
-              print(f"=== Validating {f} ===")
-              subprocess.run(["sigtool", "--info", f], check=True)
+              print(f"=== Processing {f} ===")
+              
+              # Валидируем через sigtool только CVD/CLD контейнеры
+              if f.endswith(('.cvd', '.cld')):
+                  subprocess.run(["sigtool", "--info", f], check=True)
+              else:
+                  print(f"Skipping sigtool for non-CVD file: {f}")
 
               size = os.path.getsize(f)
               sha256 = hashlib.sha256(open(f, "rb").read()).hexdigest()
