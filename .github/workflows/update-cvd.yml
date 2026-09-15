@@ -44,7 +44,7 @@ jobs:
           python3 - << 'EOF'
           import glob, os, hashlib, subprocess, datetime
 
-          files = glob.glob('cvd-out/*.cvd') + glob.glob('cvd-out/*.cld')
+          files = [f for f in glob.glob('cvd-out/*') if os.path.isfile(f)]
           if not files:
               print("::error::No CVD/CLD files downloaded!")
               exit(1)
